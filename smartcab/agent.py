@@ -3,6 +3,7 @@ from environment import Agent, Environment
 from planner import RoutePlanner
 from simulator import Simulator
 import pandas as pd
+from itertools import product
 
 
 
@@ -18,36 +19,48 @@ class LearningAgent(Agent):
 
         vi = self.env.valid_inputs
         va = self.env.valid_actions
-        
-        self.Q_table = pd.DataFrame(index=product(vi['light'], vi['oncoming'], vi['right'], vi['left'], va), columns=va)
-        self.Q_table.fillna(value=100)
+
+        self.Q_table = pd.DataFrame(index=product(['red', 'green'], vi['oncoming'], vi['right'], vi['left'], va), columns=va)
+        self.Q_table.fillna(value=100, inplace=True)
         self.gamma = 0.5
         self.alpha = 0.1
 
 
     def reset(self, destination=None):
         self.planner.route_to(destination)
+
         # TODO: Prepare for a new trip; reset any variables here, if required
+        self.last_state = None
+
+        inputs = self.env.sense(self)
+        self.state = (inputs['light'], inputs['oncoming'], inputs['right'], inputs['left'], self.next_waypoint)
+
 
     def update(self, t):
         # Gather inputs
         self.next_waypoint = self.planner.next_waypoint()  # from route planner, also displayed by simulator
-        inputs = self.env.sense(self)
         deadline = self.env.get_deadline(self)
-        self.state = (inputs['light'], inputs['oncoming'], inputs['right'], inputs['left'], self.next_waypoint)
-
-        # TODO: Update state
-        old_state = self.state
         
         # TODO: Select action according to your policy
-        action = self.next_waypoint
+        action = self.next_waypoint # always follow the next waypoint
 
         # Execute action and get reward
+        self.last_state = self.state
         reward = self.env.act(self, action)
 
-        # TODO: Learn policy based on state, action, reward
+        # Update state
+        inputs = self.env.sense(self)
+        self.state = (inputs['light'], inputs['oncoming'], inputs['right'], inputs['left'], self.next_waypoint)
 
-        print "waypoint = {}, deadline = {}, inputs = {}, action = {}, reward = {}".format(self.next_waypoint, deadline, inputs, action, reward)  # [debug]
+        # TODO: Learn policy based on state, action, reward
+        Q_old = self.Q_table[action].loc[[self.last_state]]
+        Q_cur = self.Q_table.loc[[self.state]].max()[0]
+
+        Q_new = (1.0 - self.alpha)*Q_old + self.alpha*(reward + self.gamma*Q_cur)
+
+        self.Q_table[action].loc[[self.last_state]] = Q_new
+
+        print "waypoint = {}, deadline = {}, inputs = {}, action = {}, reward = {}, Q_old = {}, Q_new = {}".format(self.next_waypoint, deadline, inputs, action, reward, Q_old, Q_new)  # [debug]
 
 
 def run():
@@ -59,8 +72,8 @@ def run():
     e.set_primary_agent(a, enforce_deadline=False)  # set agent to track
 
     # Now simulate it
-    sim = Simulator(e, update_delay=1.0)  # reduce update_delay to speed up simulation
-    sim.run(n_trials=1)  # press Esc or close pygame window to quit
+    sim = Simulator(e, update_delay=0.1)  # reduce update_delay to speed up simulation
+    sim.run(n_trials=50)  # press Esc or close pygame window to quit
 
 
 if __name__ == '__main__':

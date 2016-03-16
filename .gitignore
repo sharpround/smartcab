@@ -109,3 +109,6 @@ $RECYCLE.BIN/
 *.lnk
 *.png
 *.pdf
+*.xml
+.idea/.name
+.idea/smartcab.iml
