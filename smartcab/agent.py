@@ -55,7 +55,7 @@ class LearningAgent(Agent):
 
         # TODO: Learn policy based on state, action, reward
         Q_old = self.Q_table[action].loc[[self.last_state]]
-        Q_cur = self.Q_table.loc[[self.state]].max()[0]
+        Q_cur = self.Q_table.loc[[self.state]].max(axis=1)[0]
 
         Q_new = (1.0 - self.alpha)*Q_old + self.alpha*(reward + self.gamma*Q_cur)
 
