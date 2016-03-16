@@ -42,7 +42,8 @@ class LearningAgent(Agent):
         deadline = self.env.get_deadline(self)
         
         # TODO: Select action according to your policy
-        action = self.next_waypoint # always follow the next waypoint
+        # action = self.next_waypoint # always go to the next waypoint
+        action = self.Q_table.loc[[self.state]].idxmax(axis=1)[0]
 
         # Execute action and get reward
         self.last_state = self.state
@@ -60,7 +61,7 @@ class LearningAgent(Agent):
 
         self.Q_table[action].loc[[self.last_state]] = Q_new
 
-        print "waypoint = {}, deadline = {}, inputs = {}, action = {}, reward = {}, Q_old = {}, Q_new = {}".format(self.next_waypoint, deadline, inputs, action, reward, Q_old, Q_new)  # [debug]
+        print "t = {:6},\ts = {:40},\ta = {:10},\tr = {:3},\tQ_i = {:.2f},\tQ_i+1 = {:.2f}".format(deadline, self.last_state, action, reward, Q_old[0], Q_new[0])  # [debug]
 
 
 def run():
