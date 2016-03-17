@@ -19,11 +19,14 @@ class LearningAgent(Agent):
 
         vi = self.env.valid_inputs
         va = self.env.valid_actions
+        
+        self.gamma   = 0.5
+        self.alpha   = 0.1
+        self.epsilon = 0.2
+        Q_init       = 20.0
 
         self.Q_table = pd.DataFrame(index=product(['red', 'green'], vi['oncoming'], vi['right'], vi['left'], va), columns=va)
-        self.Q_table.fillna(value=100, inplace=True)
-        self.gamma = 0.5
-        self.alpha = 0.1
+        self.Q_table.fillna(value=Q_init, inplace=True)
 
 
     def reset(self, destination=None):
@@ -61,7 +64,7 @@ class LearningAgent(Agent):
 
         self.Q_table[action].loc[[self.last_state]] = Q_new
 
-        print "t = {:6},\ts = {:40},\ta = {:10},\tr = {:3},\tQ_i = {:.2f},\tQ_i+1 = {:.2f}".format(deadline, self.last_state, action, reward, Q_old[0], Q_new[0])  # [debug]
+        print "t = {:6},\ts = {:55},\ta = {:10},\tr = {:>4.1f},\tQ_i = {:>6.2f},\tQ_i+1 = {:>6.2f}".format(deadline, self.last_state, action, reward, Q_old[0], Q_new[0])  # [debug]
 
 
 def run():
