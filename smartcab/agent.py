@@ -7,6 +7,7 @@ from itertools import product
 import numpy as np
 
 
+num_of_experiments = 100
 
 
 class LearningAgent(Agent):
@@ -21,10 +22,10 @@ class LearningAgent(Agent):
         vi = self.env.valid_inputs
         va = self.env.valid_actions
         
-        self.gamma   = 0.8
-        self.alpha   = 0.3
-        self.epsilon = 0.2
-        Q_init       = 40.0
+        self.gamma   = 0.7
+        self.alpha   = 0.4
+        self.epsilon = 0.0
+        Q_init       = 0.0
         self.success = []
         self.trial   = 0
 
@@ -38,33 +39,42 @@ class LearningAgent(Agent):
         # TODO: Prepare for a new trip; reset any variables here, if required
         self.last_state = None
         self.trial += 1
-        if self.trial == 90:
-            self.epsilon = 0.0
+        self.epsilon = 0.9 * float(num_of_experiments - self.trial) / float(num_of_experiments)
+        # self.epsilon = 0.0
 
         inputs = self.env.sense(self)
+        self.next_waypoint = self.planner.next_waypoint()
         self.state = (inputs['light'], inputs['oncoming'], inputs['right'], inputs['left'], self.next_waypoint)
 
 
     def update(self, t):
         # Gather inputs
-        self.next_waypoint = self.planner.next_waypoint()  # from route planner, also displayed by simulator
+        # self.next_waypoint = self.planner.next_waypoint()  # from route planner, also displayed by simulator
         deadline = self.env.get_deadline(self)
         
         # TODO: Select action according to your policy
         # action = self.next_waypoint # always go to the next waypoint
         Q_row = self.Q_table.loc[[self.state]]
-        Q_perturbed = Q_row + 0.001*np.random.rand(*Q_row.shape)
-        action = Q_perturbed.idxmax(axis=1)[0]
+
+        if random.random() < self.epsilon:
+            action = random.choice(self.env.valid_actions)
+            # print("random: {}".format(action))
+        else:
+            Q_perturbed = Q_row + 0.001*np.random.rand(*Q_row.shape)
+            action = Q_perturbed.idxmax(axis=1)[0]
+            # print Q_row
 
         # Execute action and get reward
         self.last_state = self.state
         reward = self.env.act(self, action)
 
+        # if arrived, save
         if reward > 2.0:
             self.success.append(self.trial)
 
         # Update state
         inputs = self.env.sense(self)
+        self.next_waypoint = self.planner.next_waypoint()
         self.state = (inputs['light'], inputs['oncoming'], inputs['right'], inputs['left'], self.next_waypoint)
 
         # TODO: Learn policy based on state, action, reward
@@ -75,8 +85,8 @@ class LearningAgent(Agent):
 
         self.Q_table[action].loc[[self.last_state]] = Q_new
 
-        print Q_row
-        print "t = {:6},\ts = {:55},\ta = {:10},\tr = {:>4.1f},\tQ_i = {:>6.2f},\tQ_i+1 = {:>6.2f}\n".format(deadline, self.last_state, action, reward, Q_old[0], Q_new[0])  # [debug]
+        print "t = {:6}, Q_i = {:>6.2f}, Q_i+1 = {:>6.2f}, r = {:>4.1f}, a = {:10}, s = {:55}".format(deadline, Q_old[0], Q_new[0], reward, action, self.last_state)  # [debug]
+        # print "t = {:6}, w = {:10}, a = {:10}, r = {:>4.1f}, Q_i = {:>6.2f}, Q_i+1 = {:>6.2f}, s = {:55}\n".format(deadline, self.last_state, action, reward, Q_old[0], Q_new[0])
 
 
 def run():
@@ -85,14 +95,14 @@ def run():
     # Set up environment and agent
     e = Environment()  # create environment (also adds some dummy traffic)
     a = e.create_agent(LearningAgent)  # create agent
-    e.set_primary_agent(a, enforce_deadline=True)  # set agent to track
+    e.set_primary_agent(a, enforce_deadline=False)  # set agent to track
 
     # Now simulate it
-    sim = Simulator(e, update_delay=0.01)  # reduce update_delay to speed up simulation
-    sim.run(n_trials=100)  # press Esc or close pygame window to quit
+    sim = Simulator(e, update_delay=0.0)  # reduce update_delay to speed up simulation
+    sim.run(n_trials=num_of_experiments)  # press Esc or close pygame window to quit
     
-    pd.Series(a.success).to_pickle('success3.pickle')
-    a.Q_table.to_pickle('qtable3.pickle')
+    pd.Series(a.success).to_csv('success13.csv')
+    a.Q_table.to_csv('qtable13.csv')
 
 
 if __name__ == '__main__':

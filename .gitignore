@@ -113,3 +113,4 @@ $RECYCLE.BIN/
 .idea/.name
 .idea/smartcab.iml
 *.pickle
+*.csv
