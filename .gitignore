@@ -112,3 +112,4 @@ $RECYCLE.BIN/
 *.xml
 .idea/.name
 .idea/smartcab.iml
+*.pickle
