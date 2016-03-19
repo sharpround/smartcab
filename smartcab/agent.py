@@ -8,6 +8,7 @@ import numpy as np
 
 
 num_of_experiments = 100
+exp_id = '14'
 
 
 class LearningAgent(Agent):
@@ -28,6 +29,8 @@ class LearningAgent(Agent):
         Q_init       = 0.0
         self.success = []
         self.trial   = 0
+        self.q_delta = 0.0
+        self.q_delta_avg = []
 
         self.Q_table = pd.DataFrame(index=product(['red', 'green'], vi['oncoming'], vi['right'], vi['left'], va), columns=va)
         self.Q_table.fillna(value=Q_init, inplace=True)
@@ -71,6 +74,7 @@ class LearningAgent(Agent):
         # if arrived, save
         if reward > 2.0:
             self.success.append(self.trial)
+            self.q_delta_avg.append(self.q_delta / (t + 1.0))
 
         # Update state
         inputs = self.env.sense(self)
@@ -84,6 +88,8 @@ class LearningAgent(Agent):
         Q_new = (1.0 - self.alpha)*Q_old + self.alpha*(reward + self.gamma*Q_cur)
 
         self.Q_table[action].loc[[self.last_state]] = Q_new
+
+        self.q_delta += abs(Q_old - Q_new)
 
         print "t = {:6}, Q_i = {:>6.2f}, Q_i+1 = {:>6.2f}, r = {:>4.1f}, a = {:10}, s = {:55}".format(deadline, Q_old[0], Q_new[0], reward, action, self.last_state)  # [debug]
         # print "t = {:6}, w = {:10}, a = {:10}, r = {:>4.1f}, Q_i = {:>6.2f}, Q_i+1 = {:>6.2f}, s = {:55}\n".format(deadline, self.last_state, action, reward, Q_old[0], Q_new[0])
@@ -101,8 +107,9 @@ def run():
     sim = Simulator(e, update_delay=0.0)  # reduce update_delay to speed up simulation
     sim.run(n_trials=num_of_experiments)  # press Esc or close pygame window to quit
     
-    pd.Series(a.success).to_csv('success13.csv')
-    a.Q_table.to_csv('qtable13.csv')
+    pd.Series(a.success).to_pickle('success_' + exp_id + '.pickle')
+    a.Q_table.to_pickle('qtable_' + exp_id + '.pickle')
+    pd.Series(a.q_delta_avg).to_pickle('convergence_' + exp_id + '.pickle')
 
 
 if __name__ == '__main__':
