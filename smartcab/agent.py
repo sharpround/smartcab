@@ -8,7 +8,7 @@ import numpy as np
 
 
 num_of_experiments = 100
-exp_id = '14'
+exp_id = 'g5aReR'
 
 
 class LearningAgent(Agent):
@@ -23,10 +23,10 @@ class LearningAgent(Agent):
         vi = self.env.valid_inputs
         va = self.env.valid_actions
         
-        self.gamma   = 0.7
-        self.alpha   = 0.4
+        self.gamma   = 0.5
+        self.alpha   = 0.8
         self.epsilon = 0.0
-        Q_init       = 0.0
+        Q_init       = 5.0
         self.success = []
         self.trial   = 0
         self.q_delta = 0.0
@@ -42,8 +42,12 @@ class LearningAgent(Agent):
         # TODO: Prepare for a new trip; reset any variables here, if required
         self.last_state = None
         self.trial += 1
-        self.epsilon = 0.9 * float(num_of_experiments - self.trial) / float(num_of_experiments)
-        # self.epsilon = 0.0
+
+        self.epsilon    = 0.9 * float(num_of_experiments - self.trial) / float(num_of_experiments) + 0.1
+        self.alpha      = 0.6 * float(num_of_experiments - self.trial) / float(num_of_experiments) + 0.1
+        
+        if (num_of_experiments - self.trial) < 10:
+            self.epsilon = 0.0
 
         inputs = self.env.sense(self)
         self.next_waypoint = self.planner.next_waypoint()
