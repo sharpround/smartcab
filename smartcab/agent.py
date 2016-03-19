@@ -7,8 +7,8 @@ from itertools import product
 import numpy as np
 
 
-num_of_experiments = 100
-exp_id = 'g5aReR'
+num_of_experiments = 1000
+exp_id = '03'
 
 
 class LearningAgent(Agent):
@@ -23,14 +23,16 @@ class LearningAgent(Agent):
         vi = self.env.valid_inputs
         va = self.env.valid_actions
         
-        self.gamma   = 0.5
-        self.alpha   = 0.8
+        self.gamma   = 0.4
+        self.alpha   = 0.1
         self.epsilon = 0.0
-        Q_init       = 5.0
+        Q_init       = 1.0
         self.success = []
         self.trial   = 0
         self.q_delta = 0.0
         self.q_delta_avg = []
+        self.t = 0
+        self.t_total = []
 
         self.Q_table = pd.DataFrame(index=product(['red', 'green'], vi['oncoming'], vi['right'], vi['left'], va), columns=va)
         self.Q_table.fillna(value=Q_init, inplace=True)
@@ -40,11 +42,12 @@ class LearningAgent(Agent):
         self.planner.route_to(destination)
 
         # TODO: Prepare for a new trip; reset any variables here, if required
-        self.last_state = None
-        self.trial += 1
 
-        self.epsilon    = 0.9 * float(num_of_experiments - self.trial) / float(num_of_experiments) + 0.1
+        self.epsilon    = 1.0 * float(num_of_experiments - self.trial) / float(num_of_experiments)
         self.alpha      = 0.6 * float(num_of_experiments - self.trial) / float(num_of_experiments) + 0.1
+        if self.trial: 
+            self.q_delta_avg.append(self.q_delta / self.t)
+            self.t_total.append(self.t)
         
         if (num_of_experiments - self.trial) < 10:
             self.epsilon = 0.0
@@ -52,6 +55,11 @@ class LearningAgent(Agent):
         inputs = self.env.sense(self)
         self.next_waypoint = self.planner.next_waypoint()
         self.state = (inputs['light'], inputs['oncoming'], inputs['right'], inputs['left'], self.next_waypoint)
+
+        self.t = 0
+        self.q_delta = 0
+        self.last_state = None
+        self.trial += 1
 
 
     def update(self, t):
@@ -78,7 +86,6 @@ class LearningAgent(Agent):
         # if arrived, save
         if reward > 2.0:
             self.success.append(self.trial)
-            self.q_delta_avg.append(self.q_delta / (t + 1.0))
 
         # Update state
         inputs = self.env.sense(self)
@@ -93,7 +100,8 @@ class LearningAgent(Agent):
 
         self.Q_table[action].loc[[self.last_state]] = Q_new
 
-        self.q_delta += abs(Q_old - Q_new)
+        self.q_delta += abs(Q_old[0] - Q_new[0])
+        self.t += 1
 
         print "t = {:6}, Q_i = {:>6.2f}, Q_i+1 = {:>6.2f}, r = {:>4.1f}, a = {:10}, s = {:55}".format(deadline, Q_old[0], Q_new[0], reward, action, self.last_state)  # [debug]
         # print "t = {:6}, w = {:10}, a = {:10}, r = {:>4.1f}, Q_i = {:>6.2f}, Q_i+1 = {:>6.2f}, s = {:55}\n".format(deadline, self.last_state, action, reward, Q_old[0], Q_new[0])
@@ -114,6 +122,7 @@ def run():
     pd.Series(a.success).to_pickle('success_' + exp_id + '.pickle')
     a.Q_table.to_pickle('qtable_' + exp_id + '.pickle')
     pd.Series(a.q_delta_avg).to_pickle('convergence_' + exp_id + '.pickle')
+    pd.Series(a.t_total).to_pickle('steps_' + exp_id + '.pickle')
 
 
 if __name__ == '__main__':
