@@ -114,3 +114,6 @@ $RECYCLE.BIN/
 .idea/smartcab.iml
 *.pickle
 *.csv
+.ipynb_checkpoints/results-checkpoint.ipynb
+.ipynb_checkpoints/random_walk-checkpoint.ipynb
+*.zip

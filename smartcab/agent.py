@@ -7,8 +7,8 @@ from itertools import product
 import numpy as np
 
 
-num_of_experiments = 1000
-exp_id = '03'
+num_of_experiments = 100
+exp_id = '05'
 
 
 class LearningAgent(Agent):
@@ -23,16 +23,17 @@ class LearningAgent(Agent):
         vi = self.env.valid_inputs
         va = self.env.valid_actions
         
-        self.gamma   = 0.4
-        self.alpha   = 0.1
+        self.gamma   = 0.3
+        self.alpha   = 0.3
         self.epsilon = 0.0
         Q_init       = 1.0
         self.success = []
         self.trial   = 0
         self.q_delta = 0.0
         self.q_delta_avg = []
-        self.t = 0
+        self.t       = 0
         self.t_total = []
+        self.greedy  = True
 
         self.Q_table = pd.DataFrame(index=product(['red', 'green'], vi['oncoming'], vi['right'], vi['left'], va), columns=va)
         self.Q_table.fillna(value=Q_init, inplace=True)
@@ -43,13 +44,16 @@ class LearningAgent(Agent):
 
         # TODO: Prepare for a new trip; reset any variables here, if required
 
-        self.epsilon    = 1.0 * float(num_of_experiments - self.trial) / float(num_of_experiments)
+        self.epsilon    = 0.5 * float(num_of_experiments - self.trial) / float(num_of_experiments)
         self.alpha      = 0.6 * float(num_of_experiments - self.trial) / float(num_of_experiments) + 0.1
         if self.trial: 
             self.q_delta_avg.append(self.q_delta / self.t)
             self.t_total.append(self.t)
         
         if (num_of_experiments - self.trial) < 10:
+            self.epsilon = 0.0
+
+        if self.greedy:
             self.epsilon = 0.0
 
         inputs = self.env.sense(self)
